@@ -2,3 +2,6 @@ target/
 node_modules/
 viewer/dist/
 .env
+# Kept locally, not published
+docs/PRD-share.md
+docs/plexusterm-integration.md

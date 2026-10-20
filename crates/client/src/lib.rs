@@ -1,7 +1,7 @@
 //! Sans-IO engines for both ends of a PlexusTerm share.
 //!
 //! [`sharer::SharerEngine`] is the reference for the sharing side PlexusTerm
-//! builds (`docs/plexusterm-integration.md`); [`viewer::ViewerEngine`] is the
+//! builds; [`viewer::ViewerEngine`] is the
 //! logic the web viewer mirrors. Neither does any IO: callers feed relay
 //! messages in and send the returned messages out.
 

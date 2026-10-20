@@ -1,6 +1,6 @@
 # plexusterm-relay
 
-Share a live [PlexusTerm](https://github.com/jorgealonsodev/PlexusTerm) tab through a link. This repository holds the self-hosted **relay**, the **web viewer**, and the Rust crates PlexusTerm uses to share. Product requirements: [`docs/PRD-share.md`](docs/PRD-share.md).
+Share a live [PlexusTerm](https://github.com/jorgealonsodev/PlexusTerm) tab through a link. This repository holds the self-hosted **relay**, the **web viewer**, and the Rust crates PlexusTerm uses to share. Documentation: [`docs/`](docs/README.md).
 
 ```text
  Sharing PlexusTerm ──WebSocket (TLS)──► relay ◄──WebSocket (TLS)── browser or PlexusTerm
@@ -18,8 +18,7 @@ The relay never holds keys and never sees terminal content: the key travels in t
 | `crates/relay` | Relay and static viewer server (`plexusterm-relay` binary) |
 | `crates/client` | Sans-IO sharer and viewer engines, and the `plexusterm-share-demo` sharer |
 | `viewer/` | Web viewer (TypeScript, xterm.js) |
-| `docs/protocol.md` | Wire contract, version 1 |
-| `docs/plexusterm-integration.md` | What PlexusTerm must build on the sharing side, and what is ready |
+| `docs/` | [Documentation](docs/README.md): architecture, deployment, operations, security, development, protocol |
 | `deploy/nginx.conf` | Reverse proxy example |
 
 ## Try it locally

@@ -3,7 +3,7 @@
 //! Feed it what the relay sends and what the terminal prints; it returns
 //! [`Action`]s: messages to send to the relay and decisions the host must
 //! make (join approvals, input to inject). It is the reference for the
-//! PlexusTerm integration described in `docs/plexusterm-integration.md`.
+//! sharing side PlexusTerm builds on top of it.
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
