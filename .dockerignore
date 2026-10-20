@@ -1,0 +1,6 @@
+target
+**/node_modules
+viewer/dist
+.git
+.atl
+odd

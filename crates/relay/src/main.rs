@@ -8,9 +8,39 @@ use plexusterm_relay::{Config, serve};
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
+/// `--healthcheck`: GET /healthz on the local relay port, for container
+/// health checks in an image without a shell or curl. Exit 0 when healthy.
+fn healthcheck() -> ExitCode {
+    use std::io::{Read, Write};
+    let port = std::env::var("RELAY_LISTEN")
+        .ok()
+        .and_then(|l| l.rsplit_once(':').map(|(_, p)| p.to_owned()))
+        .unwrap_or_else(|| "8080".to_owned());
+    let timeout = std::time::Duration::from_secs(3);
+    let ok = (|| -> std::io::Result<bool> {
+        let addr = format!("127.0.0.1:{port}")
+            .parse()
+            .map_err(|_| std::io::ErrorKind::InvalidInput)?;
+        let mut stream = std::net::TcpStream::connect_timeout(&addr, timeout)?;
+        stream.set_read_timeout(Some(timeout))?;
+        stream.write_all(b"GET /healthz HTTP/1.0\r\nHost: localhost\r\n\r\n")?;
+        let mut response = String::new();
+        stream.read_to_string(&mut response)?;
+        Ok(response.starts_with("HTTP/1.0 200") || response.starts_with("HTTP/1.1 200"))
+    })();
+    if matches!(ok, Ok(true)) {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(1)
+    }
+}
+
 /// Exit codes: 0 clean shutdown, 2 bad configuration, 3 cannot listen.
 #[tokio::main]
 async fn main() -> ExitCode {
+    if std::env::args().nth(1).as_deref() == Some("--healthcheck") {
+        return healthcheck();
+    }
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),

@@ -239,9 +239,15 @@ mod tests {
     use axum::http::Request;
     use tower::ServiceExt;
 
+    /// A fresh built-viewer directory per call; tests run in parallel.
     fn site_dir() -> PathBuf {
-        let dir =
-            std::env::temp_dir().join(format!("plexusterm-viewer-test-{}", std::process::id()));
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static NEXT: AtomicUsize = AtomicUsize::new(0);
+        let dir = std::env::temp_dir().join(format!(
+            "plexusterm-viewer-test-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
         std::fs::create_dir_all(dir.join("assets")).unwrap();
         std::fs::write(
             dir.join("index.html"),
@@ -254,12 +260,16 @@ mod tests {
     }
 
     fn app(relay_url: &str) -> Router {
-        router(&ViewerConfig {
+        let dir = site_dir();
+        let app = router(&ViewerConfig {
             listen: "127.0.0.1:0".parse().unwrap(),
-            dir: site_dir(),
+            dir: dir.clone(),
             relay_url: relay_url.into(),
         })
-        .unwrap()
+        .unwrap();
+        // Everything is in memory now; the files are no longer needed.
+        std::fs::remove_dir_all(dir).unwrap();
+        app
     }
 
     async fn get(app: Router, path: &str) -> Response {

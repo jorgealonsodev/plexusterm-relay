@@ -1,0 +1,46 @@
+# PlexusTerm share relay — a stack of its own (PRD-share §5.7, §6.2).
+# Portainer: Stacks → Add stack → Repository (this repo) or paste this file,
+# and set RELAY_TOKENS and RELAY_PUBLIC_URL as stack environment variables.
+#
+# Deliberately absent: volumes, the Docker socket, SSH and any network shared
+# with a PlexusTerm Host stack. State lives in memory only.
+
+name: plexusterm-relay
+
+services:
+  relay:
+    build: .
+    image: plexusterm-relay:latest
+    restart: unless-stopped
+    environment:
+      # Comma-separated, 16+ characters each. Generate with: openssl rand -base64 32
+      RELAY_TOKENS: ${RELAY_TOKENS:?set RELAY_TOKENS}
+      # Public WebSocket URL of the relay, e.g. wss://relay.example.com
+      RELAY_PUBLIC_URL: ${RELAY_PUBLIC_URL:?set RELAY_PUBLIC_URL}
+      # The reverse proxy sets X-Forwarded-For; only trust it behind the proxy.
+      RELAY_TRUST_PROXY: "1"
+      RUST_LOG: info
+    ports:
+      # Only the reverse proxy on this host reaches these.
+      - "127.0.0.1:8080:8080" # relay  (wss://relay.example.com)
+      - "127.0.0.1:8081:8081" # viewer (https://view.example.com)
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 64m
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/plexusterm-relay", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks: [relay]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+networks:
+  relay:
+    name: plexusterm-relay
