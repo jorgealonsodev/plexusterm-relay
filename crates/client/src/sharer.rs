@@ -76,6 +76,16 @@ pub enum Action {
         access: Access,
         url_secret: Secret,
     },
+    /// Asynchronous snapshots only: serialize the terminal and answer with
+    /// [`SharerEngine::snapshot_ready`]. Output for this viewer is held
+    /// until then.
+    SnapshotRequest {
+        viewer: u32,
+    },
+    /// The relay confirmed a new end time (after [`SharerEngine::set_expiry`]).
+    ExpiryChanged {
+        expires_at: u64,
+    },
     /// The relay ended the share.
     Ended {
         reason: EndReason,
@@ -117,6 +127,9 @@ struct Live {
     /// of the last snapshot it was sent. Below it lies history the sharer
     /// did not choose to share (PRD §4.1: it may contain secrets).
     floor: u64,
+    /// An asynchronous snapshot was requested and not delivered yet: live
+    /// output is not sent; it follows the snapshot from the buffer.
+    awaiting_snapshot: bool,
     sealer: Sealer,
     opener: Opener,
 }
@@ -145,6 +158,8 @@ pub struct SharerEngine {
     cols: u16,
     rows: u16,
     snapshot_source: Option<SnapshotSource>,
+    async_snapshots: bool,
+    input_paused: bool,
 }
 
 /// A serialized terminal (`@xterm/addon-serialize` output in PlexusTerm).
@@ -188,6 +203,8 @@ impl SharerEngine {
             cols: config.cols,
             rows: config.rows,
             snapshot_source: None,
+            async_snapshots: false,
+            input_paused: false,
         }
     }
 
@@ -195,6 +212,100 @@ impl SharerEngine {
     /// snapshot, which is what the demo sharer does.
     pub fn set_snapshot_source(&mut self, source: SnapshotSource) {
         self.snapshot_source = Some(source);
+    }
+
+    /// For hosts whose terminal state lives elsewhere (PlexusTerm: xterm in
+    /// the webview). When a viewer needs a snapshot the engine returns
+    /// [`Action::SnapshotRequest`] and holds that viewer's output; the host
+    /// serializes and answers with [`SharerEngine::snapshot_ready`].
+    pub fn set_async_snapshots(&mut self, on: bool) {
+        self.async_snapshots = on;
+    }
+
+    /// Number of the last output passed to [`SharerEngine::output`]. Tag
+    /// what the terminal renders with it, so a snapshot can say which
+    /// output it covers.
+    pub fn last_seq(&self) -> u64 {
+        self.log.last_seq()
+    }
+
+    /// Delivers an asynchronous snapshot of the terminal as it was after
+    /// output number `covers_seq`. The engine sends it, then the output
+    /// after `covers_seq` from its buffer. If that output is no longer
+    /// buffered, or `covers_seq` is ahead of the output passed so far, it
+    /// asks again with [`Action::SnapshotRequest`].
+    pub fn snapshot_ready(
+        &mut self,
+        viewer: u32,
+        covers_seq: u64,
+        snapshot: Snapshot,
+    ) -> Vec<Action> {
+        let Some(Slot::Live(mut live)) = self.slots.remove(&viewer) else {
+            return Vec::new();
+        };
+        let actions = if !live.awaiting_snapshot {
+            Vec::new()
+        } else {
+            match (covers_seq <= self.log.last_seq())
+                .then(|| self.log.since(covers_seq))
+                .flatten()
+            {
+                None => vec![Action::SnapshotRequest { viewer }],
+                Some(after) => {
+                    live.awaiting_snapshot = false;
+                    let mut actions = self.send_snapshot(viewer, &mut live, covers_seq, snapshot);
+                    actions.extend(after.into_iter().flat_map(|(seq, data)| {
+                        seal(viewer, &mut live, &Content::Output { seq, data })
+                    }));
+                    actions
+                }
+            }
+        };
+        self.slots.insert(viewer, Slot::Live(live));
+        actions
+    }
+
+    pub fn expires_at(&self) -> u64 {
+        self.expires_at
+    }
+
+    /// Extend or shorten the share (Unix seconds, at most 12 h ahead on the
+    /// relay's clock). The relay confirms with [`Action::ExpiryChanged`] and
+    /// tells the viewers; a refused value ends with [`Action::Refused`].
+    pub fn set_expiry(&mut self, expires_at: u64) -> Vec<Action> {
+        vec![text(&SharerToRelay::SetExpiry { expires_at })]
+    }
+
+    /// The shared program exited: viewers see "The shared program exited",
+    /// then the share ends.
+    pub fn program_exited(&mut self) -> Vec<Action> {
+        let mut actions = self.broadcast(&Content::Status(Status {
+            program_exited: Some(true),
+            ..Status::default()
+        }));
+        actions.extend(self.end());
+        actions
+    }
+
+    /// Pause viewer input: viewers are told, and viewers who join while
+    /// paused are told at once. Holding the input itself is the host's job
+    /// (it already holds input for the sharer's own typing).
+    pub fn pause_input(&mut self, paused: bool) -> Vec<Action> {
+        self.input_paused = paused;
+        self.broadcast(&Content::Status(Status {
+            input_paused: Some(paused),
+            ..Status::default()
+        }))
+    }
+
+    fn broadcast(&mut self, content: &Content) -> Vec<Action> {
+        let mut actions = Vec::new();
+        for (id, slot) in &mut self.slots {
+            if let Slot::Live(live) = slot {
+                actions.extend(seal(*id, live, content));
+            }
+        }
+        actions
     }
 
     pub fn share_id(&self) -> ShareId {
@@ -261,7 +372,7 @@ impl SharerEngine {
             }
             RelayToSharer::Expiry { expires_at } => {
                 self.expires_at = expires_at;
-                Vec::new()
+                vec![Action::ExpiryChanged { expires_at }]
             }
             RelayToSharer::Pong => Vec::new(),
             RelayToSharer::Ended { reason } => vec![Action::Ended { reason }],
@@ -403,11 +514,19 @@ impl SharerEngine {
             link_id: info.link_id,
             access,
             floor,
+            awaiting_snapshot: false,
             sealer: Sealer::new(&keys.to_viewer, self.binding(viewer, Direction::ToViewer)),
             opener: Opener::new(&keys.to_sharer, self.binding(viewer, Direction::ToSharer)),
         };
         let mut actions = vec![Action::Binary(encode_routed(viewer, &msg2))];
         actions.extend(self.catch_up(viewer, &mut live, hello.resume_from));
+        if self.input_paused {
+            let paused = Content::Status(Status {
+                input_paused: Some(true),
+                ..Status::default()
+            });
+            actions.extend(seal(viewer, &mut live, &paused));
+        }
         self.slots.insert(viewer, Slot::Live(live));
         actions
     }
@@ -496,7 +615,9 @@ impl SharerEngine {
         let added = self.log.push(data);
         let mut actions = Vec::new();
         for (id, slot) in &mut self.slots {
-            if let Slot::Live(live) = slot {
+            if let Slot::Live(live) = slot
+                && !live.awaiting_snapshot
+            {
                 for (seq, piece) in &added {
                     actions.extend(seal(
                         *id,
@@ -557,6 +678,10 @@ impl SharerEngine {
                 .flat_map(|(seq, data)| seal(viewer, live, &Content::Output { seq, data }))
                 .collect();
         }
+        if self.async_snapshots {
+            live.awaiting_snapshot = true;
+            return vec![Action::SnapshotRequest { viewer }];
+        }
         let snapshot = match &mut self.snapshot_source {
             Some(source) => source(),
             None => Snapshot {
@@ -565,6 +690,18 @@ impl SharerEngine {
             },
         };
         let covers = self.log.last_seq();
+        self.send_snapshot(viewer, live, covers, snapshot)
+    }
+
+    /// Sends a snapshot covering output `covers` and records it as the
+    /// client's resume floor.
+    fn send_snapshot(
+        &mut self,
+        viewer: u32,
+        live: &mut Live,
+        covers: u64,
+        snapshot: Snapshot,
+    ) -> Vec<Action> {
         live.floor = covers;
         if let Some(grant) = self.approved.get_mut(&live.client) {
             grant.floor = covers;

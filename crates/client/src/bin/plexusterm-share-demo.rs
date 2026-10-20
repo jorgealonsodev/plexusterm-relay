@@ -244,6 +244,12 @@ async fn main() -> ExitCode {
                         true
                     }
                     Action::LinkRotated { .. } => true,
+                    // The demo uses the synchronous buffer snapshot.
+                    Action::SnapshotRequest { .. } => true,
+                    Action::ExpiryChanged { expires_at } => {
+                        eprintln!("sharing until {expires_at} (Unix time)");
+                        true
+                    }
                     Action::Ended { reason } => {
                         eprintln!("share ended: {reason:?}");
                         done = Some(ExitCode::SUCCESS);

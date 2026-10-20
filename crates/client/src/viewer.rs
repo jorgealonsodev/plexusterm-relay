@@ -31,6 +31,8 @@ pub enum Event {
     },
     AccessChanged(Access),
     InputPaused(bool),
+    /// The shared program exited; the share ends right after.
+    ProgramExited,
     SharerAway,
     SharerBack,
     Expiry(u64),
@@ -248,6 +250,9 @@ impl ViewerEngine {
                 }
                 if let Some(paused) = status.input_paused {
                     actions.push(Action::Event(Event::InputPaused(paused)));
+                }
+                if status.program_exited == Some(true) {
+                    actions.push(Action::Event(Event::ProgramExited));
                 }
                 actions
             }
