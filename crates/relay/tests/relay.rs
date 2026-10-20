@@ -606,3 +606,16 @@ async fn messages_keep_their_documented_shape() {
         serde_json::json!({"t": "left", "viewer": 3, "reason": "slow"})
     );
 }
+
+#[tokio::test]
+async fn accepted_is_the_first_answer_even_while_the_sharer_is_away() {
+    let addr = relay().await;
+    let mut share = create(addr).await;
+    let (mut first, _) = join(addr, &mut share).await;
+    drop(share.sharer);
+    assert_eq!(first.text().await["t"], "sharer_away");
+
+    let (mut late, answer) = join_with(addr, share.id, &share.view).await;
+    assert_eq!(answer["t"], "accepted", "{answer}");
+    assert_eq!(late.text().await["t"], "sharer_away");
+}

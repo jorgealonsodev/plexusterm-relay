@@ -344,10 +344,8 @@ async fn viewer_session(socket: WebSocket, hub: Arc<Hub>, ip: IpAddr, ua: String
         reply,
     });
     let viewer = match answer.await {
-        Ok(Ok((viewer, expires_at))) => {
-            tx.text(&RelayToViewer::Accepted { viewer, expires_at });
-            viewer
-        }
+        // The share actor already queued `accepted` for this viewer.
+        Ok(Ok((viewer, _))) => viewer,
         Ok(Err(code)) => return refuse(&tx, viewer_error(code, "join refused")),
         Err(_) => return refuse(&tx, viewer_error(ErrorCode::NotFound, "share not found")),
     };

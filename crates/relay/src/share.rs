@@ -354,6 +354,12 @@ impl Share {
             ip,
             ua,
         };
+        // `accepted` goes first on the viewer's ordered queue, before any
+        // notice, broadcast or sharer frame that can follow registration.
+        conn.text(&RelayToViewer::Accepted {
+            viewer: id,
+            expires_at: self.expires_at,
+        });
         if let Some(s) = &self.sharer {
             s.text(&RelayToSharer::Join(info.clone()));
         }
