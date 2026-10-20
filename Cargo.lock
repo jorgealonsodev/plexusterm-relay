@@ -697,6 +697,7 @@ version = "0.1.0"
 dependencies = [
  "aes-gcm",
  "base64 0.23.1",
+ "flate2",
  "hkdf",
  "hmac",
  "rand",
