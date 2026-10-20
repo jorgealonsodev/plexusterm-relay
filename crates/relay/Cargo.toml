@@ -1,0 +1,24 @@
+[package]
+name = "plexusterm-relay"
+description = "Self-hosted relay that forwards end-to-end encrypted PlexusTerm share frames"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+axum.workspace = true
+futures-util.workspace = true
+plexusterm-share-protocol.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+subtle.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+tokio-tungstenite.workspace = true
+tokio = { workspace = true, features = ["test-util"] }

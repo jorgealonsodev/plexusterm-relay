@@ -42,8 +42,8 @@ Assumptions (marked, not user requirements):
 
 | ID | Specs | Route | Status | Commit |
 | --- | --- | --- | --- | --- |
-| T1 | S3 S4 S5 S13 | inline | pending | — |
-| T2 | S2 S6 S7 S8 S10 S13 | inline | pending | — |
+| T1 | S3 S4 S5 S13 | inline | done | eecf56c |
+| T2 | S2 S6 S7 S8 S10 S13 | inline | done | cc11df7 |
 | T3 | S1 S5 S7 S12 S13 | inline | pending | — |
 | T4 | S4 S5 S7 S9 | inline | pending | — |
 | T5 | S9 | inline | pending | — |
@@ -66,3 +66,5 @@ L2 (2026-10-20): "crea un documento que indique a pexusterm lo que tiene que hac
 L3 (2026-10-20): "segun vallas haciendo el desarrollo, actualizalo si es necesario"
 L4: Forecast ~4 000 authored lines; delivery strategy needs a chain choice before the second commit.
 L5 (2026-10-20): chain strategy answer: "stacked-to-main (Recommended)".
+L6: T1 RED: replay test failed with the sequence check disabled ("left: Ok([108, 115, 13])"); GREEN 24 passed; clippy -D warnings and fmt clean. Native review of eecf56c granted (lenses risk, reliability), lineage review-b29c2807e5cbffe6, running.
+L7: T2 relay: 8 unit + 19 integration tests green (3 runs stable). RED: join test failed with the HMAC check disabled ("left: String(\"accepted\")"). Decision: sharer sends `rotate` before `kick` so the old secret is dead before the viewer learns it was removed (protocol.md, integration doc updated). IPs are never logged (S10: stricter than 24 h retention).

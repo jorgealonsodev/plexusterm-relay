@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/protocol"]
+members = ["crates/protocol", "crates/relay"]
 
 [workspace.package]
 version = "0.1.0"
@@ -12,6 +12,9 @@ repository = "https://github.com/jorgealonsodev/plexusterm-relay"
 [workspace.dependencies]
 # The RustCrypto 0.10/0.12 line matches what snow 0.10 links, so one crypto stack ships.
 aes-gcm = "0.10"
+axum = { version = "0.8", features = ["ws"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+plexusterm-share-protocol = { path = "crates/protocol" }
 base64 = "0.23"
 hkdf = "0.12"
 hmac = "0.12"
@@ -23,6 +26,10 @@ sha2 = "0.10"
 snow = { version = "0.10", default-features = false, features = ["std", "default-resolver", "use-aes-gcm", "use-chacha20poly1305", "use-sha2", "use-curve25519", "use-getrandom", "risky-raw-split"] }
 subtle = "2"
 thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "sync", "signal"] }
+tokio-tungstenite = "0.28"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [profile.release]
 lto = true

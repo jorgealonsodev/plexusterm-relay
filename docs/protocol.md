@@ -68,7 +68,7 @@ Either side may send `{"t":"ping"}` (answered with `{"t":"pong"}`) and must do s
 | `resume` | `proto`, `token`, `share_id`, `owner_proof` | re-attach after a drop |
 | `deny` | `viewer` | refuse a pending viewer |
 | `kick` | `viewer` | Disconnect a viewer |
-| `rotate` | `link_id`, `new: {link_id, verifier}` | replace a link; the old secret stops working |
+| `rotate` | `link_id`, `new: {link_id, verifier}` | replace a link; the old secret stops working. Send it before the `kick` it goes with |
 | `set_expiry` | `expires_at` | extend or shorten |
 | `end` | — | Stop sharing |
 
