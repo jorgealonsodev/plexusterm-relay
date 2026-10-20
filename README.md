@@ -62,7 +62,7 @@ Exit codes: 0 clean shutdown, 2 bad configuration, 3 cannot listen. `plexusterm-
 ## Deploy
 
 1. Generate a token: `openssl rand -base64 32`.
-2. In Portainer, add a stack from this repository (or paste `compose.yaml`) with `RELAY_TOKENS` and `RELAY_PUBLIC_URL`. The stack is separate from any PlexusTerm Host stack: no volumes, no Docker socket, read-only filesystem, no capabilities.
+2. In Portainer, add a stack from this repository (or paste `docker-compose.yml`) with `RELAY_TOKENS` and `RELAY_PUBLIC_URL`. The stack is separate from any PlexusTerm Host stack: no volumes, no Docker socket, read-only filesystem, no capabilities.
 3. Point two names at the reverse proxy, one for the relay and one for the viewer, and use [`deploy/nginx.conf`](deploy/nginx.conf): WebSocket upgrade, read timeout over 60 s, no access logs for `/s/*`.
 4. In PlexusTerm, enter the relay URL, the viewer origin and the token.
 
