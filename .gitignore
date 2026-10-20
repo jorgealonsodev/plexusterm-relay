@@ -5,3 +5,5 @@ viewer/dist/
 # Kept locally, not published
 docs/PRD-share.md
 docs/plexusterm-integration.md
+# Local security scan output (paths, notes, logs)
+strix_runs/
