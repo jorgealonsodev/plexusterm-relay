@@ -1,0 +1,30 @@
+[workspace]
+resolver = "3"
+members = ["crates/protocol"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+repository = "https://github.com/jorgealonsodev/plexusterm-relay"
+
+[workspace.dependencies]
+# The RustCrypto 0.10/0.12 line matches what snow 0.10 links, so one crypto stack ships.
+aes-gcm = "0.10"
+base64 = "0.23"
+hkdf = "0.12"
+hmac = "0.12"
+rand = "0.9"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+# snow needs use-chacha20poly1305 for its AES-GCM resolver to compile: it imports KeyInit from chacha20poly1305.
+snow = { version = "0.10", default-features = false, features = ["std", "default-resolver", "use-aes-gcm", "use-chacha20poly1305", "use-sha2", "use-curve25519", "use-getrandom", "risky-raw-split"] }
+subtle = "2"
+thiserror = "2"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
