@@ -67,12 +67,15 @@ fn upgrade(ws: WebSocketUpgrade, hub: &Hub) -> WebSocketUpgrade {
     ws.max_message_size(max).max_frame_size(max)
 }
 
+/// Behind the trusted proxy, the client is the **last** `X-Forwarded-For`
+/// entry: proxies such as Nginx Proxy Manager append the address they saw
+/// to whatever the client sent, so earlier entries can be forged.
 fn client_ip(hub: &Hub, peer: SocketAddr, headers: &HeaderMap) -> IpAddr {
     if hub.config.trust_proxy
         && let Some(ip) = headers
             .get("x-forwarded-for")
             .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.split(',').next())
+            .and_then(|v| v.rsplit(',').next())
             .and_then(|v| v.trim().parse().ok())
     {
         return ip;

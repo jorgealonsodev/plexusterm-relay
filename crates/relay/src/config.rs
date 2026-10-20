@@ -69,7 +69,7 @@ pub struct Config {
     pub listen: SocketAddr,
     /// Relay tokens allowed to create shares. Never logged.
     pub tokens: Vec<String>,
-    /// Take the client IP from `X-Forwarded-For` (set only behind the
+    /// Take the client IP from the last `X-Forwarded-For` entry (set only behind the
     /// shipped reverse proxy).
     pub trust_proxy: bool,
     pub limits: Limits,

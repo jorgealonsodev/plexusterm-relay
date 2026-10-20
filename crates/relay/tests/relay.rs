@@ -619,3 +619,76 @@ async fn accepted_is_the_first_answer_even_while_the_sharer_is_away() {
     assert_eq!(answer["t"], "accepted", "{answer}");
     assert_eq!(late.text().await["t"], "sharer_away");
 }
+
+/// Joins with a given `X-Forwarded-For` header; returns the IP the relay
+/// reports to the sharer, or the refusal code.
+async fn join_forwarded(
+    addr: SocketAddr,
+    share: &mut TestShare,
+    forwarded_for: &str,
+) -> Result<String, ErrorCode> {
+    use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+    let mut req = format!("ws://{addr}/v1/viewer")
+        .into_client_request()
+        .unwrap();
+    req.headers_mut()
+        .insert("x-forwarded-for", forwarded_for.parse().unwrap());
+    let (mut ws, _) = connect_async(req).await.unwrap();
+    let hello = next_text(&mut ws).await.unwrap();
+    let challenge = Challenge::from_b64(hello["challenge"].as_str().unwrap()).unwrap();
+    let mut viewer = Client { ws, challenge };
+    viewer
+        .send(&ViewerToRelay::Join {
+            proto: 1,
+            share_id: share.id,
+            link_id: share.view.link_id,
+            proof: share.view.prove(Role::Viewer, &share.id, &viewer.challenge),
+        })
+        .await;
+    let answer = viewer.text().await;
+    if answer["t"] != "accepted" {
+        return Err(error_code(&answer));
+    }
+    // Earlier viewers of this helper have closed: skip their `left`.
+    loop {
+        let note = share.sharer.text().await;
+        if note["t"] == "join" {
+            return Ok(note["ip"].as_str().unwrap().to_owned());
+        }
+    }
+}
+
+#[tokio::test]
+async fn behind_a_proxy_the_client_ip_is_the_entry_the_proxy_added() {
+    let limits = Limits {
+        joins_per_minute: 2,
+        ..Limits::default()
+    };
+    let addr = start(Config {
+        trust_proxy: true,
+        ..config(limits, fast_timings())
+    })
+    .await;
+    let mut share = create(addr).await;
+
+    // Nginx Proxy Manager appends the real address to whatever the client
+    // sent: the first entries are the client's own, possibly forged.
+    assert_eq!(
+        join_forwarded(addr, &mut share, "198.51.100.1, 203.0.113.7").await,
+        Ok("203.0.113.7".to_owned())
+    );
+    // Rotating a forged first entry does not escape the per-IP limit.
+    assert_eq!(
+        join_forwarded(addr, &mut share, "198.51.100.2, 203.0.113.7").await,
+        Ok("203.0.113.7".to_owned())
+    );
+    assert_eq!(
+        join_forwarded(addr, &mut share, "198.51.100.3, 203.0.113.7").await,
+        Err(ErrorCode::RateLimited)
+    );
+    // A single entry (deploy/nginx.conf sets $remote_addr) is used as is.
+    assert_eq!(
+        join_forwarded(addr, &mut share, "192.0.2.44").await,
+        Ok("192.0.2.44".to_owned())
+    );
+}

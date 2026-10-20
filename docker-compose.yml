@@ -20,7 +20,8 @@ services:
       # Every variable is explained in env.example.
       RELAY_TOKENS: ${RELAY_TOKENS:?set RELAY_TOKENS}
       RELAY_PUBLIC_URL: ${RELAY_PUBLIC_URL:?set RELAY_PUBLIC_URL}
-      # The reverse proxy sets X-Forwarded-For; only trust it behind the proxy.
+      # The reverse proxy appends the client address to X-Forwarded-For; the
+      # relay takes that last entry. Only trust it behind the proxy.
       RELAY_TRUST_PROXY: ${RELAY_TRUST_PROXY:-1}
       RELAY_MAX_VIEWERS: ${RELAY_MAX_VIEWERS:-10}
       RELAY_BYTES_PER_SEC: ${RELAY_BYTES_PER_SEC:-2097152}

@@ -54,7 +54,7 @@ The web viewer offers **Open in PlexusTerm**, which builds that `plexusterm://` 
 | --- | --- | --- |
 | `RELAY_TOKENS` | required | Comma-separated tokens (16+ characters) that may create shares |
 | `RELAY_LISTEN` | `0.0.0.0:8080` | Relay address |
-| `RELAY_TRUST_PROXY` | `false` | Take the client IP from `X-Forwarded-For` (only behind the proxy) |
+| `RELAY_TRUST_PROXY` | `false` | Take the client IP from the last `X-Forwarded-For` entry, the one the proxy adds (only behind the proxy) |
 | `RELAY_MAX_VIEWERS` | `10` | Viewers per share |
 | `RELAY_BYTES_PER_SEC` | `2097152` | Bytes per second per share, both directions |
 | `RELAY_JOINS_PER_MINUTE` | `20` | Join attempts per minute per IP |

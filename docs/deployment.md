@@ -33,7 +33,7 @@ All variables, with how to obtain each one, are in [`env.example`](../env.exampl
 | `RELAY_PUBLIC_URL` | yes | the relay as browsers reach it: `wss://relay-…`, no path or trailing slash |
 | `VIEWER_BUILD_HASH` | no | commit shown in the viewer footer and `/build.txt` (default `dev`) |
 | `RELAY_HOST_PORT`, `VIEWER_HOST_PORT`, `HOST_BIND_IP` | no | `33154`, `60689`, `0.0.0.0` |
-| `RELAY_TRUST_PROXY` | no | `1`: client IP from `X-Forwarded-For` |
+| `RELAY_TRUST_PROXY` | no | `1`: client IP from the last `X-Forwarded-For` entry, which the proxy adds (earlier entries can be forged by the client) |
 | `RELAY_MAX_VIEWERS`, `RELAY_BYTES_PER_SEC`, `RELAY_JOINS_PER_MINUTE`, `RELAY_MAX_SHARES_PER_TOKEN`, `RELAY_VIEWER_QUEUE_BYTES` | no | PRD defaults: 10, 2 MiB/s, 20, 50, 2 MiB |
 | `RUST_LOG` | no | `info` |
 
