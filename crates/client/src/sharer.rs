@@ -113,9 +113,22 @@ struct Live {
     client: ClientId,
     link_id: LinkId,
     access: Access,
+    /// Lowest output number this client may resume from: the `covers_seq`
+    /// of the last snapshot it was sent. Below it lies history the sharer
+    /// did not choose to share (PRD §4.1: it may contain secrets).
+    floor: u64,
     sealer: Sealer,
     opener: Opener,
 }
+
+#[derive(Clone, Copy)]
+struct Grant {
+    link_id: LinkId,
+    floor: u64,
+}
+
+/// No snapshot sent yet: every resume request is refused.
+const NO_FLOOR: u64 = u64::MAX;
 
 pub struct SharerEngine {
     share_id: ShareId,
@@ -125,8 +138,8 @@ pub struct SharerEngine {
     links: Vec<Link>,
     attached: bool,
     slots: BTreeMap<u32, Slot>,
-    /// Clients approved before, so reconnects skip approval.
-    approved: HashMap<ClientId, LinkId>,
+    /// Clients approved before, so reconnects skip approval and may resume.
+    approved: HashMap<ClientId, Grant>,
     banned: HashSet<ClientId>,
     log: OutputLog,
     cols: u16,
@@ -325,7 +338,7 @@ impl SharerEngine {
         if self.banned.contains(&hello.client) {
             return vec![deny(viewer)];
         }
-        let known = self.approved.get(&hello.client) == Some(&info.link_id);
+        let known = self.approved.get(&hello.client).map(|g| g.link_id) == Some(info.link_id);
         let (ip, ua) = (info.ip.clone(), info.ua.clone());
         self.slots.insert(
             viewer,
@@ -372,11 +385,24 @@ impl SharerEngine {
         let Ok((keys, msg2)) = pending.respond(&body) else {
             return vec![deny(viewer)];
         };
-        self.approved.insert(hello.client, info.link_id);
+        // A reconnecting client keeps its floor; a new one has none, so its
+        // `resume_from` is ignored and it gets the snapshot.
+        let floor = match self.approved.get(&hello.client) {
+            Some(g) if g.link_id == info.link_id => g.floor,
+            _ => NO_FLOOR,
+        };
+        self.approved.insert(
+            hello.client,
+            Grant {
+                link_id: info.link_id,
+                floor,
+            },
+        );
         let mut live = Live {
             client: hello.client,
             link_id: info.link_id,
             access,
+            floor,
             sealer: Sealer::new(&keys.to_viewer, self.binding(viewer, Direction::ToViewer)),
             opener: Opener::new(&keys.to_sharer, self.binding(viewer, Direction::ToSharer)),
         };
@@ -516,8 +542,12 @@ impl SharerEngine {
         }
     }
 
+    /// Sends what the viewer missed after `resume_from`, or a snapshot when
+    /// that is not possible or not allowed. `resume_from` comes from the
+    /// viewer, so it is honored only from the client's floor up.
     fn catch_up(&mut self, viewer: u32, live: &mut Live, resume_from: Option<u64>) -> Vec<Action> {
-        if let Some(missed) = resume_from.and_then(|n| self.log.since(n)) {
+        let allowed = resume_from.filter(|n| live.floor != NO_FLOOR && *n >= live.floor);
+        if let Some(missed) = allowed.and_then(|n| self.log.since(n)) {
             return missed
                 .into_iter()
                 .flat_map(|(seq, data)| seal(viewer, live, &Content::Output { seq, data }))
@@ -531,6 +561,10 @@ impl SharerEngine {
             },
         };
         let covers = self.log.last_seq();
+        live.floor = covers;
+        if let Some(grant) = self.approved.get_mut(&live.client) {
+            grant.floor = covers;
+        }
         let (cols, rows) = (self.cols, self.rows);
         let mut frames = Vec::new();
         if let Some(screen) = snapshot.screen {
