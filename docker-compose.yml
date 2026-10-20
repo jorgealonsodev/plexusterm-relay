@@ -1,6 +1,7 @@
 # PlexusTerm share relay — a stack of its own (PRD-share §5.7, §6.2).
 # Portainer: Stacks → Add stack → Repository (this repo) or paste this file,
-# and set RELAY_TOKENS and RELAY_PUBLIC_URL as stack environment variables.
+# and set the variables of env.example as stack environment variables.
+# docker compose: cp env.example .env, fill it in, docker compose up -d --build
 #
 # Deliberately absent: volumes, the Docker socket, SSH and any network shared
 # with a PlexusTerm Host stack. State lives in memory only.
@@ -9,21 +10,28 @@ name: plexusterm-relay
 
 services:
   relay:
-    build: .
+    build:
+      context: .
+      args:
+        VIEWER_BUILD_HASH: ${VIEWER_BUILD_HASH:-dev}
     image: plexusterm-relay:latest
     restart: unless-stopped
     environment:
-      # Comma-separated, 16+ characters each. Generate with: openssl rand -base64 32
+      # Every variable is explained in env.example.
       RELAY_TOKENS: ${RELAY_TOKENS:?set RELAY_TOKENS}
-      # Public WebSocket URL of the relay, e.g. wss://relay.example.com
       RELAY_PUBLIC_URL: ${RELAY_PUBLIC_URL:?set RELAY_PUBLIC_URL}
       # The reverse proxy sets X-Forwarded-For; only trust it behind the proxy.
-      RELAY_TRUST_PROXY: "1"
-      RUST_LOG: info
+      RELAY_TRUST_PROXY: ${RELAY_TRUST_PROXY:-1}
+      RELAY_MAX_VIEWERS: ${RELAY_MAX_VIEWERS:-10}
+      RELAY_BYTES_PER_SEC: ${RELAY_BYTES_PER_SEC:-2097152}
+      RELAY_JOINS_PER_MINUTE: ${RELAY_JOINS_PER_MINUTE:-20}
+      RELAY_MAX_SHARES_PER_TOKEN: ${RELAY_MAX_SHARES_PER_TOKEN:-50}
+      RELAY_VIEWER_QUEUE_BYTES: ${RELAY_VIEWER_QUEUE_BYTES:-2097152}
+      RUST_LOG: ${RUST_LOG:-info}
     ports:
       # Only the reverse proxy on this host reaches these.
-      - "127.0.0.1:8080:8080" # relay  (wss://relay.example.com)
-      - "127.0.0.1:8081:8081" # viewer (https://view.example.com)
+      - "127.0.0.1:${RELAY_HOST_PORT:-8080}:8080" # relay  (wss://relay.example.com)
+      - "127.0.0.1:${VIEWER_HOST_PORT:-8081}:8081" # viewer (https://view.example.com)
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
