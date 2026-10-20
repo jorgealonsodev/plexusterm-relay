@@ -29,9 +29,11 @@ services:
       RELAY_VIEWER_QUEUE_BYTES: ${RELAY_VIEWER_QUEUE_BYTES:-2097152}
       RUST_LOG: ${RUST_LOG:-info}
     ports:
-      # Only the reverse proxy on this host reaches these.
-      - "127.0.0.1:${RELAY_HOST_PORT:-8080}:8080" # relay  (wss://relay.example.com)
-      - "127.0.0.1:${VIEWER_HOST_PORT:-8081}:8081" # viewer (https://view.example.com)
+      # The reverse proxy (e.g. Nginx Proxy Manager in its own container)
+      # forwards to <host IP>:port. Do not open these in the firewall: only
+      # the proxy reaches them; the internet reaches the proxy on 443.
+      - "${HOST_BIND_IP:-0.0.0.0}:${RELAY_HOST_PORT:-33154}:8080" # relay  (wss://relay.example.com)
+      - "${HOST_BIND_IP:-0.0.0.0}:${VIEWER_HOST_PORT:-60689}:8081" # viewer (https://view.example.com)
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]

@@ -63,7 +63,9 @@ Exit codes: 0 clean shutdown, 2 bad configuration, 3 cannot listen. `plexusterm-
 
 1. Fill in the variables of [`env.example`](env.example), which says how to generate or obtain each one (a token: `openssl rand -hex 32`). With plain docker compose: `cp env.example .env`, edit it, `docker compose up -d --build`.
 2. In Portainer, add a stack from this repository (or paste `docker-compose.yml`) and set the same variables as stack environment variables; `RELAY_TOKENS` and `RELAY_PUBLIC_URL` are required. The stack is separate from any PlexusTerm Host stack: no volumes, no Docker socket, read-only filesystem, no capabilities.
-3. Point two names at the reverse proxy, one for the relay and one for the viewer, and use [`deploy/nginx.conf`](deploy/nginx.conf): WebSocket upgrade, read timeout over 60 s, no access logs for `/s/*`.
+3. Point two names at the reverse proxy, one for the relay and one for the viewer. The container publishes the relay on host port `33154` and the viewer on `60689` (`RELAY_HOST_PORT`, `VIEWER_HOST_PORT`); keep both closed in the firewall, only the proxy reaches them.
+   - **Nginx Proxy Manager:** two Proxy Hosts, Forward Hostname = the server's IP, scheme `http`. Relay: port `33154`, **Websockets Support** on, SSL with Let's Encrypt and Force SSL, Advanced: `proxy_read_timeout 120s; proxy_send_timeout 120s; access_log off;`. Viewer: port `60689`, SSL with Let's Encrypt and Force SSL, Advanced: `access_log off;`.
+   - **Plain nginx:** [`deploy/nginx.conf`](deploy/nginx.conf) (WebSocket upgrade, read timeout over 60 s, no access logs for `/s/*`).
 4. In PlexusTerm, enter the relay URL, the viewer origin and the token.
 
 Multi-arch image: `docker buildx build --platform linux/amd64,linux/arm64 --build-arg VIEWER_BUILD_HASH=$(git rev-parse --short=12 HEAD) -t plexusterm-relay .`. The build hash appears in the viewer footer and at `/build.txt`.
