@@ -100,8 +100,19 @@ fn vectors() -> Value {
                 ..Status::default()
             }),
         ),
-        ("size", Content::Size { cols: 300, rows: 50 }),
-        ("input", Content::Input { data: b"\x03".to_vec() }),
+        (
+            "size",
+            Content::Size {
+                cols: 300,
+                rows: 50,
+            },
+        ),
+        (
+            "input",
+            Content::Input {
+                data: b"\x03".to_vec(),
+            },
+        ),
         ("resync_some", Content::Resync { last_seq: Some(9) }),
         ("resync_none", Content::Resync { last_seq: None }),
     ];

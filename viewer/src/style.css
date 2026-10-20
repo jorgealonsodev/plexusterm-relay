@@ -1,0 +1,30 @@
+:root {
+  --bg: #0f1115;
+  --fg: #e6e6e6;
+  --muted: #9aa0a6;
+  --accent: #4f8cff;
+  --danger: #ff5c5c;
+  --panel: #171a21;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+body { display: flex; flex-direction: column; min-height: 100dvh; }
+.bar { display: flex; gap: 12px; align-items: center; padding: 8px 16px; background: var(--panel); }
+.brand { font-weight: 600; }
+.access { padding: 2px 8px; border-radius: 999px; border: 1px solid var(--muted); font-size: 13px; }
+.access[data-access="type"] { border-color: var(--danger); color: var(--danger); }
+.expiry { margin-left: auto; color: var(--muted); font-size: 13px; }
+main { flex: 1; display: flex; min-height: 0; }
+.gate { margin: auto; max-width: 32rem; padding: 24px 16px; text-align: center; }
+.gate p { font-size: 17px; }
+.gate button { margin-top: 12px; padding: 10px 28px; font: inherit; font-weight: 600; color: #fff;
+  background: var(--accent); border: 0; border-radius: 8px; cursor: pointer; }
+.gate button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.terminal-wrap { flex: 1; overflow: auto; padding: 8px; }
+.status { position: fixed; left: 50%; bottom: 48px; transform: translateX(-50%); max-width: calc(100% - 32px);
+  padding: 8px 14px; background: var(--panel); border: 1px solid var(--muted); border-radius: 8px; }
+.foot { display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: space-between; padding: 6px 16px;
+  color: var(--muted); font-size: 12px; background: var(--panel); }
+[hidden] { display: none !important; }

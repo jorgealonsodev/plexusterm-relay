@@ -1,4 +1,6 @@
-//! `plexusterm-relay` binary: reads `RELAY_*` from the environment and serves.
+//! `plexusterm-relay` binary: reads `RELAY_*` and `VIEWER_*` from the
+//! environment, serves the relay and, when `VIEWER_LISTEN` is set, the web
+//! viewer on a second listener.
 
 use std::process::ExitCode;
 
@@ -29,6 +31,32 @@ async fn main() -> ExitCode {
             return ExitCode::from(3);
         }
     };
+    let viewer =
+        match plexusterm_relay::viewer::ViewerConfig::from_env_with(|k| std::env::var(k).ok()) {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("plexusterm-relay: {e}");
+                return ExitCode::from(2);
+            }
+        };
+    if let Some(viewer) = viewer {
+        let app = match plexusterm_relay::viewer::router(&viewer) {
+            Ok(app) => app,
+            Err(e) => {
+                eprintln!("plexusterm-relay: viewer: {e}");
+                return ExitCode::from(2);
+            }
+        };
+        let listener = match TcpListener::bind(viewer.listen).await {
+            Ok(l) => l,
+            Err(e) => {
+                eprintln!("plexusterm-relay: cannot listen on {}: {e}", viewer.listen);
+                return ExitCode::from(3);
+            }
+        };
+        tracing::info!(addr = %viewer.listen, "viewer listening");
+        tokio::spawn(plexusterm_relay::viewer::serve(listener, app));
+    }
     tracing::info!(addr = %config.listen, "relay listening");
     match serve(listener, config).await {
         Ok(()) => ExitCode::SUCCESS,

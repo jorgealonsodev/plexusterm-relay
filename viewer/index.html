@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="plexusterm-relay" content="__RELAY_URL__" />
+    <link rel="icon" href="data:," />
+    <title>PlexusTerm share</title>
+  </head>
+  <body>
+    <header class="bar">
+      <span class="brand">PlexusTerm</span>
+      <span id="access" class="access" hidden></span>
+      <span id="expiry" class="expiry" hidden></span>
+    </header>
+    <main>
+      <section id="gate" class="gate">
+        <p id="gate-text"></p>
+        <button id="join" type="button" hidden></button>
+      </section>
+      <div id="terminal-wrap" class="terminal-wrap" hidden>
+        <div id="terminal"></div>
+      </div>
+    </main>
+    <div id="status" class="status" role="status" aria-live="polite" hidden></div>
+    <footer class="foot">
+      <span id="trust"></span>
+      <span>build <code id="build"></code></span>
+    </footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

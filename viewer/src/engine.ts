@@ -138,7 +138,11 @@ export class ViewerEngine {
         if (this.lastSeq !== null) hello.resume_from = Number(this.lastSeq);
         const [hs, msg1] = await ViewerHandshake.start(this.shareId, this.keys.psk, utf8(JSON.stringify(hello)));
         this.state = { t: "handshaking", hs };
-        return [{ t: "binary", data: msg1 }, ev({ t: "waiting" })];
+        return [
+          { t: "binary", data: msg1 },
+          ev({ t: "waiting" }),
+          ev({ t: "expiry", expiresAt: Number(msg.expires_at) }),
+        ];
       }
       case "sharer_away":
         return [ev({ t: "sharer_away" })];

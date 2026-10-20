@@ -22,3 +22,4 @@ tracing-subscriber.workspace = true
 [dev-dependencies]
 tokio-tungstenite.workspace = true
 tokio = { workspace = true, features = ["test-util"] }
+tower = { version = "0.5", features = ["util"] }

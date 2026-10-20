@@ -8,6 +8,7 @@ pub mod config;
 mod conn;
 mod hub;
 mod share;
+pub mod viewer;
 
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
