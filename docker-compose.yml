@@ -1,7 +1,11 @@
 # PlexusTerm share relay — a stack of its own (PRD-share §5.7, §6.2).
 # Portainer: Stacks → Add stack → Repository (this repo) or paste this file,
 # and set the variables of env.example as stack environment variables.
-# docker compose: cp env.example .env, fill it in, docker compose up -d --build
+# docker compose: cp env.example .env, fill it in, docker compose up -d
+#
+# The image is built by GitHub Actions (.github/workflows/image.yml) for amd64
+# and arm64 and pulled from GHCR, so deploying takes seconds instead of
+# compiling Rust on the server. To build locally instead, see docs/development.md.
 #
 # Deliberately absent: volumes, the Docker socket, SSH and any network shared
 # with a PlexusTerm Host stack. State lives in memory only.
@@ -10,11 +14,9 @@ name: plexusterm-relay
 
 services:
   relay:
-    build:
-      context: .
-      args:
-        VIEWER_BUILD_HASH: ${VIEWER_BUILD_HASH:-dev}
-    image: plexusterm-relay:latest
+    # Pin a commit (e.g. 93545b8) for reproducible deploys; `latest` follows main.
+    image: ghcr.io/jorgealonsodev/plexusterm-relay:${RELAY_IMAGE_TAG:-latest}
+    pull_policy: always
     restart: unless-stopped
     environment:
       # Every variable is explained in env.example.

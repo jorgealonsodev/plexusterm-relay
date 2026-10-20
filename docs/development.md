@@ -73,6 +73,8 @@ UPDATE_VECTORS=1 cargo test -p plexusterm-share-protocol --test vectors
 
 ## Image
 
+CI builds and publishes the deployed image (`.github/workflows/image.yml`). To build one locally:
+
 ```sh
 docker buildx build --platform linux/amd64,linux/arm64 \
   --build-arg VIEWER_BUILD_HASH=$(git rev-parse --short=12 HEAD) -t plexusterm-relay .

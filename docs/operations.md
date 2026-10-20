@@ -41,7 +41,7 @@ A token is checked when a share is created or a sharer reconnects; redeploying e
 ## Upgrades
 
 1. Push to `main` (or pick the commit to deploy).
-2. Portainer → the stack → **Pull and redeploy**; set `VIEWER_BUILD_HASH` to the new commit.
+2. Wait for the **image** workflow on GitHub to publish it (about 3 minutes), then Portainer → the stack → **Pull and redeploy** (with `RELAY_IMAGE_TAG=latest`, or set it to the new commit to pin it). The server only downloads the image.
 3. Verify `build.txt` and health.
 
 State is in memory only, so **a redeploy or restart ends every live share**: viewers see the share end, and the sharer must start a new one. Deploy when nobody is sharing.

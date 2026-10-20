@@ -8,7 +8,7 @@ Run the relay and the web viewer as one container behind your existing TLS rever
 2. **Token:** `openssl rand -hex 32` — keep it; PlexusTerm needs it.
 3. **Stack:** Portainer → Stacks → Add stack → Repository:
    - Repository URL `https://github.com/jorgealonsodev/plexusterm-relay`, reference `refs/heads/main`, compose path `docker-compose.yml`, no authentication (public repository).
-   - Environment: `RELAY_TOKENS=<token>`, `RELAY_PUBLIC_URL=wss://relay-plexusterm.example.com`, `VIEWER_BUILD_HASH=<commit>`.
+   - Environment: `RELAY_TOKENS=<token>`, `RELAY_PUBLIC_URL=wss://relay-plexusterm.example.com`, optionally `RELAY_IMAGE_TAG=<commit>`.
 4. **Proxy:** two NPM Proxy Hosts (table below), each with a Let's Encrypt certificate.
 5. **Check:** `https://share-plexusterm.example.com/build.txt` returns the commit; the container is `healthy`.
 
@@ -31,7 +31,7 @@ All variables, with how to obtain each one, are in [`env.example`](../env.exampl
 | --- | --- | --- |
 | `RELAY_TOKENS` | yes | tokens allowed to create shares, comma-separated, 16+ characters: `openssl rand -hex 32` |
 | `RELAY_PUBLIC_URL` | yes | the relay as browsers reach it: `wss://relay-…`, no path or trailing slash |
-| `VIEWER_BUILD_HASH` | no | commit shown in the viewer footer and `/build.txt` (default `dev`) |
+| `RELAY_IMAGE_TAG` | no | image tag on GHCR: `latest` (follows `main`) or a short commit to pin a build |
 | `RELAY_HOST_PORT`, `VIEWER_HOST_PORT`, `HOST_BIND_IP` | no | `33154`, `60689`, `0.0.0.0` |
 | `RELAY_TRUST_PROXY` | no | `1`: client IP from the last `X-Forwarded-For` entry, which the proxy adds (earlier entries can be forged by the client) |
 | `RELAY_MAX_VIEWERS`, `RELAY_BYTES_PER_SEC`, `RELAY_JOINS_PER_MINUTE`, `RELAY_MAX_SHARES_PER_TOKEN`, `RELAY_VIEWER_QUEUE_BYTES` | no | PRD defaults: 10, 2 MiB/s, 20, 50, 2 MiB |
@@ -91,7 +91,7 @@ On Oracle Cloud, open 80 and 443 both in the VCN security list (or NSG) and in t
 ```sh
 git clone https://github.com/jorgealonsodev/plexusterm-relay && cd plexusterm-relay
 cp env.example .env   # fill in RELAY_TOKENS and RELAY_PUBLIC_URL
-docker compose up -d --build
+docker compose up -d
 ```
 
 ## Verify
@@ -105,7 +105,7 @@ docker compose up -d --build
 | `curl -sI https://share-…/s/x` | `content-security-policy` with `connect-src wss://relay-…`, `referrer-policy: no-referrer`, `cache-control: no-store` |
 | End to end | share with `plexusterm-share-demo` (see [Development](development.md#tools)) and open the link on a phone |
 
-The first deployment builds the image on the server (a few minutes on arm64 or amd64).
+Deploying only downloads the image built by GitHub Actions (amd64 or arm64, picked automatically), so it takes seconds.
 
 ## Configure PlexusTerm
 
