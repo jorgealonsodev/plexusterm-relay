@@ -53,7 +53,6 @@ If the wire protocol changes (`PROTOCOL_VERSION`), old PlexusTerm builds are ref
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | Portainer: "Unable to retrieve stack file: Could not get the contents of the file 'docker-compose.yml'" | Stack points to a missing branch (e.g. `refs/heads/feat/share-p1`), a wrong compose path, or authentication is on | Reference `refs/heads/main`, compose path `docker-compose.yml`, authentication off (public repository). If the reference cannot be edited, recreate the stack: nothing is lost |
-| Stack refuses to start: "required variable RELAY_TOKENS is missing" | Missing environment | Set `RELAY_TOKENS` and `RELAY_PUBLIC_URL` |
 | Container exits with code 2 | Bad configuration (token shorter than 16 characters, bad `RELAY_PUBLIC_URL`) | `docker logs` names the variable |
 | Viewer page loads, "Can't reach <relay>" | NPM Websockets Support off, wrong forward port, or the relay host not proxied | Relay Proxy Host: Websockets on, port `33154` |
 | Viewers drop every ~60 s | Proxy read timeout | `proxy_read_timeout 120s; proxy_send_timeout 120s;` in the relay host |

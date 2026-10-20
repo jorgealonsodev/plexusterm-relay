@@ -37,7 +37,7 @@ All variables, with how to obtain each one, are in [`env.example`](../env.exampl
 | `RELAY_MAX_VIEWERS`, `RELAY_BYTES_PER_SEC`, `RELAY_JOINS_PER_MINUTE`, `RELAY_MAX_SHARES_PER_TOKEN`, `RELAY_VIEWER_QUEUE_BYTES` | no | PRD defaults: 10, 2 MiB/s, 20, 50, 2 MiB |
 | `RUST_LOG` | no | `info` |
 
-Without `RELAY_TOKENS` or `RELAY_PUBLIC_URL` the stack refuses to start.
+Without `RELAY_TOKENS` or `RELAY_PUBLIC_URL` the relay refuses to start (exit code 2; `docker logs` names the missing variable).
 
 ## Reverse proxy
 
