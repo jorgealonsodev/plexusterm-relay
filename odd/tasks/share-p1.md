@@ -43,15 +43,15 @@ Assumptions (marked, not user requirements):
 | ID | Specs | Route | Status | Commit |
 | --- | --- | --- | --- | --- |
 | T1 | S3 S4 S5 S13 | inline | done | eecf56c |
-| T2 | S2 S6 S7 S8 S10 S13 | inline | done | cc11df7 |
-| T3 | S1 S5 S7 S12 S13 | inline | pending | — |
+| T2 | S2 S6 S7 S8 S10 S13 | inline | done | 4b42bda |
+| T3 | S1 S5 S7 S12 S13 | inline | done | (T3 commit) |
 | T4 | S4 S5 S7 S9 | inline | pending | — |
 | T5 | S9 | inline | pending | — |
 | T6 | S1 S11 S10 S13 | inline | pending | — |
 
 - T1 protocol crate: wire messages, HKDF derivation, verifier/HMAC proof, Noise NNpsk0, frame seal/open, replay guard, protocol doc + integration doc v0.
 - T2 relay: sharer/viewer WebSocket flows, challenge auth, join forwarding, kick/rotate, expiry, idle end, sharer grace, limits, pings, backpressure, logging policy.
-- T3 demo sharer (PTY) + end-to-end Rust tests: marker inspection, replay, revocation, reconnection/resume.
+- T3 `plexusterm-share-client`: sans-IO SharerEngine/ViewerEngine, demo sharer (PTY) + end-to-end Rust tests: marker inspection, replay, revocation, reconnection/resume.
 - T4 viewer client library (TS): Noise, frames, protocol, reconnection; cross-language vectors from Rust.
 - T5 viewer UI and static serving: Join page, fragment removal, states, footer hash, SRI build, security headers.
 - T6 deployment: multi-arch Dockerfile, compose for Portainer, reverse-proxy example, README.
@@ -68,3 +68,4 @@ L4: Forecast ~4 000 authored lines; delivery strategy needs a chain choice befor
 L5 (2026-10-20): chain strategy answer: "stacked-to-main (Recommended)".
 L6: T1 RED: replay test failed with the sequence check disabled ("left: Ok([108, 115, 13])"); GREEN 24 passed; clippy -D warnings and fmt clean. Native review of eecf56c granted (lenses risk, reliability), lineage review-b29c2807e5cbffe6, running.
 L7: T2 relay: 8 unit + 19 integration tests green (3 runs stable). RED: join test failed with the HMAC check disabled ("left: String(\"accepted\")"). Decision: sharer sends `rotate` before `kick` so the old secret is dead before the viewer learns it was removed (protocol.md, integration doc updated). IPs are never logged (S10: stricter than 24 h retention).
+L8: T3: SharerEngine (reference for PlexusTerm) and ViewerEngine (mirrored by the TS viewer) in crates/client; demo binary plexusterm-share-demo. 12 e2e tests (real relay + sans-IO test relay) cover S12: marker never in relayed frames, replayed input/output frames dropped, kicked viewer refused with bad_key while others keep working, reconnect resumes from buffer without approval (<5 s, shortened deterministic version of the 30 s chaos test), past-buffer reconnect gets a fresh snapshot, sharer resume + Resync. RED: View only drop disabled → downgrade test failed ("left: [Input { viewer: 1, data: [113] }]"). Decision: snapshot gets a `part` byte (screen, then full, back to back) so PRD §5.3 "visible screen first" works; SnapshotSource hook for @xterm/addon-serialize. Smoke: relay + demo binaries; demo exits 0 when the program exits, 4 when the relay refuses the token.

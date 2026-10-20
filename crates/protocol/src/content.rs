@@ -54,6 +54,17 @@ pub struct Status {
     pub program_exited: Option<bool>,
 }
 
+/// A sharer may send the visible screen first (`Screen`), so the viewer
+/// paints at once, and then the screen with its history (`Full`), which
+/// replaces it. A snapshot with only a `Full` part is valid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SnapshotPart {
+    /// Visible screen only; a `Full` part with the same `covers_seq` follows.
+    Screen = 0,
+    /// History and screen.
+    Full = 1,
+}
+
 const T_OUTPUT: u8 = 0x10;
 const T_SNAPSHOT: u8 = 0x11;
 const T_STATUS: u8 = 0x12;
@@ -71,13 +82,15 @@ pub enum Content {
     },
     /// One chunk of a snapshot. `covers_seq` is the last output sequence
     /// number already contained in the snapshot; live output continues
-    /// from `covers_seq + 1`. Chunks are numbered `index` of `count`; the
-    /// first chunk holds the visible screen. `compressed` means raw DEFLATE.
-    /// The bytes are the terminal snapshot format versioned by PlexusTerm.
+    /// from `covers_seq + 1`. Chunks of one part are numbered `index` of
+    /// `count` and concatenate, each decompressed on its own when
+    /// `compressed` (raw DEFLATE). The bytes are the terminal snapshot
+    /// format versioned by PlexusTerm.
     Snapshot {
         covers_seq: u64,
         cols: u16,
         rows: u16,
+        part: SnapshotPart,
         index: u16,
         count: u16,
         compressed: bool,
@@ -113,6 +126,7 @@ impl Content {
                 covers_seq,
                 cols,
                 rows,
+                part,
                 index,
                 count,
                 compressed,
@@ -122,6 +136,7 @@ impl Content {
                 out.extend_from_slice(&covers_seq.to_be_bytes());
                 out.extend_from_slice(&cols.to_be_bytes());
                 out.extend_from_slice(&rows.to_be_bytes());
+                out.push(*part as u8);
                 out.extend_from_slice(&index.to_be_bytes());
                 out.extend_from_slice(&count.to_be_bytes());
                 out.push(u8::from(*compressed));
@@ -162,6 +177,11 @@ impl Content {
                 covers_seq: r.u64()?,
                 cols: r.u16()?,
                 rows: r.u16()?,
+                part: match r.u8()? {
+                    0 => SnapshotPart::Screen,
+                    1 => SnapshotPart::Full,
+                    _ => return Err(ProtocolError::Malformed),
+                },
                 index: r.u16()?,
                 count: r.u16()?,
                 compressed: match r.u8()? {
@@ -236,6 +256,7 @@ mod tests {
                 covers_seq: 41,
                 cols: 120,
                 rows: 40,
+                part: SnapshotPart::Full,
                 index: 0,
                 count: 3,
                 compressed: true,

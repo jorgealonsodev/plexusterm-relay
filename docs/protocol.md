@@ -163,13 +163,24 @@ aad = "PTS1" ‖ share_id (16) ‖ viewer_id (u32) ‖ direction (0 = to viewer,
 | Type | Layout | Direction |
 | --- | --- | --- |
 | `0x10` Output | `seq u64 ‖ bytes` | to viewer |
-| `0x11` Snapshot | `covers_seq u64 ‖ cols u16 ‖ rows u16 ‖ index u16 ‖ count u16 ‖ compressed u8 ‖ bytes` | to viewer |
+| `0x11` Snapshot | `covers_seq u64 ‖ cols u16 ‖ rows u16 ‖ part u8 ‖ index u16 ‖ count u16 ‖ compressed u8 ‖ bytes` | to viewer |
 | `0x12` Status | JSON `{"access"?, "input_paused"?, "program_exited"?}` | to viewer |
 | `0x13` Size | `cols u16 ‖ rows u16` | to viewer |
 | `0x20` Input | bytes: one complete key event or one bracketed paste | to sharer |
 | `0x21` Resync | `present u8 ‖ last_seq u64` | to sharer |
 
-Output `seq` numbers are the share's output sequence, the same for every viewer. A snapshot's `covers_seq` is the last output number it contains; live output continues at `covers_seq + 1`. Chunk 0 holds the visible screen, later chunks the chosen history. `compressed = 1` means raw DEFLATE. Snapshot bytes are the terminal snapshot format versioned by PlexusTerm (`@xterm/addon-serialize` output); the relay and the protocol treat them as opaque.
+Output `seq` numbers are the share's output sequence, the same for every viewer. A snapshot's `covers_seq` is the last output number it contains; live output continues at `covers_seq + 1`.
+
+A snapshot has one or two **parts**, each split into chunks `index` of `count` that concatenate in order; a chunk with `compressed = 1` is raw DEFLATE on its own.
+
+| `part` | Content | Viewer |
+| --- | --- | --- |
+| `0` screen | visible screen only; the `full` part with the same `covers_seq` follows | resets and paints it as soon as it is complete |
+| `1` full | chosen history and screen | resets and writes it, then applies live output after `covers_seq` |
+
+Sending the screen first lets the viewer paint at once while the history is still on its way (PRD §5.3). The sharer sends the `full` part right after the `screen` part, before any later output. A sharer may send only a `full` part. Snapshot bytes are the terminal snapshot format versioned by PlexusTerm (`@xterm/addon-serialize` output); the relay and the protocol treat them as opaque.
+
+A viewer applies `Output` frames in `seq` order: it skips any `seq` it already applied and, while a snapshot is incomplete, holds live output until the snapshot is written.
 
 ## 6. Relay rules
 
