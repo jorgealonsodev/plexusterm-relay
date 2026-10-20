@@ -21,3 +21,4 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 
 [dev-dependencies]
 plexusterm-relay.workspace = true
+tokio = { workspace = true, features = ["process", "io-util"] }

@@ -8,6 +8,7 @@ import { Terminal } from "@xterm/xterm";
 import { type ClientEvent, ShareClient } from "./client";
 import type { ErrorCode } from "./engine";
 import { fromB64, utf8 } from "./protocol/bytes";
+import { deepLink } from "./protocol/link";
 import { strings } from "./strings";
 
 declare const __BUILD_HASH__: string;
@@ -17,6 +18,7 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 const gate = $("gate");
 const gateText = $("gate-text");
 const joinButton = $<HTMLButtonElement>("join");
+const openAppButton = $<HTMLButtonElement>("open-app");
 const wrap = $("terminal-wrap");
 const status = $("status");
 const accessLabel = $("access");
@@ -51,7 +53,12 @@ function showGate(text: string, withButton = false): void {
   gate.hidden = false;
   gateText.textContent = text;
   joinButton.hidden = !withButton;
+  openAppButton.hidden = !withButton || !appLink;
 }
+
+/** The share as a `plexusterm://` link, built here so the key never
+ * leaves the fragment; `null` when the relay is not `wss://`. */
+let appLink: string | null = null;
 
 function say(text: string | null): void {
   status.hidden = !text;
@@ -191,7 +198,12 @@ function start(shareId: Uint8Array<ArrayBuffer>, secret: Uint8Array<ArrayBuffer>
   const secret = fromB64(fragment, 32);
   if (!secret) return showGate(t.incomplete);
   joinButton.textContent = t.join;
+  openAppButton.textContent = t.openInApp;
+  appLink = deepLink(relayUrl(), pathMatch![1]!, fragment);
   showGate(t.joinPrompt, true);
+  openAppButton.addEventListener("click", () => {
+    if (appLink) location.assign(appLink);
+  });
   // One click before connecting, so link-preview bots never join.
   joinButton.addEventListener(
     "click",

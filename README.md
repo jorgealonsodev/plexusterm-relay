@@ -38,6 +38,15 @@ PLEXUSTERM_RELAY_TOKEN=local-token-0123456789 ./target/debug/plexusterm-share-de
 
 The demo prints a View only and a Can type link, then asks `Allow? [y/N]` on its terminal for each join. Open a link in a browser and press **Join**.
 
+To watch a share from a terminal (the reference for PlexusTerm as a viewer), pass the link through the environment, never as an argument:
+
+```sh
+PLEXUSTERM_SHARE_LINK='plexusterm://s/relay.example.com/<id>#<key>' ./target/debug/plexusterm-share-watch
+# an https:// link also needs: --relay wss://relay.example.com  (see <viewer-origin>/relay.txt)
+```
+
+The web viewer offers **Open in PlexusTerm**, which builds that `plexusterm://` link in the browser.
+
 `plexusterm-share-demo` runs any command in a pseudo-terminal: `-- htop`, `-- claude`. Options: `--access view|type|both`, `--expires MINUTES` (1–720), `--approve ask|auto`, `--size COLSxROWS`. Exit codes: 0 share ended, 2 bad arguments, 3 the command could not start, 4 the relay refused the share.
 
 ## Configuration

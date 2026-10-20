@@ -142,3 +142,18 @@ describe("snapshot inflate", () => {
     await expect(inflateRaw(compressed)).rejects.toThrow("snapshot chunk too large");
   });
 });
+
+describe("deep link", () => {
+  it("matches the Rust deep link", async () => {
+    const { deepLink } = await import("../src/protocol/link");
+    expect(deepLink(v.relay_url, v.share_id, v.secret)).toBe(v.deep_link);
+    expect(deepLink(`${v.relay_url}/`, v.share_id, v.secret)).toBe(v.deep_link);
+  });
+
+  it("needs a TLS relay with a plain host", async () => {
+    const { deepLink } = await import("../src/protocol/link");
+    expect(deepLink("ws://relay.example", v.share_id, v.secret)).toBeNull();
+    expect(deepLink("wss://relay.example/path", v.share_id, v.secret)).toBeNull();
+    expect(deepLink("wss://", v.share_id, v.secret)).toBeNull();
+  });
+});

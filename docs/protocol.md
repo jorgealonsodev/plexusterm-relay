@@ -14,8 +14,11 @@ The relay sees only what is marked *relay-visible* below. Everything else is end
 ## 2. Links and keys
 
 ```text
-https://<viewer-origin>/s/<share-id>#<secret>
+https://<viewer-origin>/s/<share-id>#<secret>          opens in a browser
+plexusterm://s/<relay-host>/<share-id>#<secret>        opens in PlexusTerm
 ```
+
+`relay-host` is the `host[:port]` of the relay's `wss://` URL (letters, digits, `.`, `-`, `:`, IPv6 brackets; no path). The web viewer builds the `plexusterm://` link client-side from the page it was opened with, so the secret stays in a fragment. A PlexusTerm given a pasted `https://` link learns the relay from `GET <viewer-origin>/relay.txt`, which returns the relay URL followed by a newline.
 
 | Value | Size | Origin |
 | --- | --- | --- |

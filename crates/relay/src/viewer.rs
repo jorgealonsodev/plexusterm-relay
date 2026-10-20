@@ -80,6 +80,9 @@ pub async fn serve(listener: tokio::net::TcpListener, app: Router) -> std::io::R
 
 struct Site {
     index: Vec<u8>,
+    /// `wss://host[:port]`, served at `/relay.txt` so a PlexusTerm given a
+    /// pasted share link knows which relay to join.
+    relay: Vec<u8>,
     files: HashMap<String, (Vec<u8>, &'static str)>,
     headers: Vec<(HeaderName, HeaderValue)>,
 }
@@ -177,6 +180,7 @@ pub fn router(config: &ViewerConfig) -> Result<Router, ViewerError> {
     }
     let site = Arc::new(Site {
         index,
+        relay: format!("{origin}\n").into_bytes(),
         files,
         headers,
     });
@@ -185,6 +189,7 @@ pub fn router(config: &ViewerConfig) -> Result<Router, ViewerError> {
         .route("/s/{id}/", get(index_page))
         .route("/assets/{*file}", get(asset))
         .route("/build.txt", get(build))
+        .route("/relay.txt", get(relay))
         .route("/healthz", get(|| async { "ok" }))
         .fallback(not_found)
         .with_state(site))
@@ -221,6 +226,15 @@ async fn build(State(site): State<Arc<Site>>) -> Response {
         Some((body, kind)) => respond(&site, StatusCode::OK, body.clone(), kind),
         None => not_found(State(site)).await,
     }
+}
+
+async fn relay(State(site): State<Arc<Site>>) -> Response {
+    respond(
+        &site,
+        StatusCode::OK,
+        site.relay.clone(),
+        "text/plain; charset=utf-8",
+    )
 }
 
 async fn not_found(State(site): State<Arc<Site>>) -> Response {
@@ -302,6 +316,21 @@ mod tests {
         assert!(
             body.contains(r#"content="wss://relay.example:8443""#),
             "{body}"
+        );
+    }
+
+    #[tokio::test]
+    async fn relay_url_is_published_for_pasted_share_links() {
+        let res = get(app("wss://relay.example:8443/"), "/relay.txt").await;
+        assert_eq!(res.status(), StatusCode::OK);
+        assert_eq!(
+            res.headers()[header::CONTENT_TYPE],
+            "text/plain; charset=utf-8"
+        );
+        assert_eq!(res.headers()[header::REFERRER_POLICY], "no-referrer");
+        assert_eq!(
+            to_bytes(res.into_body(), 128).await.unwrap(),
+            "wss://relay.example:8443\n"
         );
     }
 

@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use plexusterm_share_protocol::content::{Access, ClientId, Content, SnapshotPart, Status};
 use plexusterm_share_protocol::frame::{Binding, Direction, Sealer};
 use plexusterm_share_protocol::keys::{Challenge, DerivedKeys, Role, Secret, ShareId};
-use plexusterm_share_protocol::link::share_url;
+use plexusterm_share_protocol::link::{deep_link, share_url};
 use plexusterm_share_protocol::noise::{PendingViewer, ViewerHandshake};
 use serde_json::{Value, json};
 
@@ -123,6 +123,8 @@ fn vectors() -> Value {
         "secret": secret.to_b64(),
         "challenge": challenge.to_b64(),
         "link": share_url("https://view.example", &share_id, &secret),
+        "relay_url": "wss://relay.example:8443",
+        "deep_link": deep_link("wss://relay.example:8443", &share_id, &secret).unwrap(),
         "derived": {
             "link_id": keys.link_id.to_b64(),
             "psk": hex(&keys.psk),

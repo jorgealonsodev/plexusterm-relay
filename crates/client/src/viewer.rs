@@ -127,6 +127,10 @@ impl ViewerEngine {
         };
         match msg {
             RelayToViewer::Hello(hello) => {
+                if hello.proto != PROTOCOL_VERSION {
+                    // "Update PlexusTerm to open this share" (PRD §4.4).
+                    return self.finish(Event::Refused(ErrorCode::Version));
+                }
                 self.state = State::Joining;
                 vec![json(&ViewerToRelay::Join {
                     proto: PROTOCOL_VERSION,

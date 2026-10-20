@@ -3,6 +3,7 @@
 
 const en = {
   join: "Join",
+  openInApp: "Open in PlexusTerm",
   joinPrompt: "Someone shared a PlexusTerm terminal with you.",
   waiting: "Waiting for the sharer to let you in",
   denied: "The sharer declined your request",
@@ -31,6 +32,7 @@ export type Strings = typeof en;
 
 const es: Strings = {
   join: "Unirse",
+  openInApp: "Abrir en PlexusTerm",
   joinPrompt: "Alguien ha compartido contigo un terminal de PlexusTerm.",
   waiting: "Esperando a que quien comparte te deje entrar",
   denied: "Quien comparte ha rechazado tu solicitud",
