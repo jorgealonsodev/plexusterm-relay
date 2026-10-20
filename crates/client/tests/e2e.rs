@@ -667,6 +667,46 @@ mod sans_io {
         assert!(viewer.input(b"q").is_none());
     }
 
+    /// A join request still waiting for an answer when the sharer switches
+    /// to View only is approved as View only.
+    #[test]
+    fn downgrade_applies_to_viewers_waiting_for_approval() {
+        let mut sharer = engine(Access::Type);
+        let (_, url) = sharer.links("https://view.test").remove(0);
+        let link = parse_share_url(&url).unwrap();
+        let secret = link.secret.unwrap();
+        let mut viewer = ViewerEngine::new(link.share_id, &secret, ClientId::random());
+        viewer.on_text(HELLO);
+        let accepted = viewer.on_text(r#"{"t":"accepted","viewer":1,"expires_at":1}"#);
+        let viewer::Action::Binary(msg1) = &accepted[0] else {
+            panic!("expected Noise message 1")
+        };
+        let link_id = DerivedKeys::derive(&secret).link_id.to_b64();
+        sharer.on_text(&format!(
+            r#"{{"t":"join","viewer":1,"link_id":"{link_id}","ip":"203.0.113.9","ua":"t"}}"#
+        ));
+        assert!(matches!(
+            sharer.on_binary(&encode_routed(1, msg1))[..],
+            [sharer::Action::JoinRequest {
+                access: Access::Type,
+                ..
+            }]
+        ));
+
+        sharer.downgrade_to_view();
+        let frames = to_viewer(sharer.approve(1));
+        let joined = viewer.on_binary(&frames[0]);
+        assert_eq!(
+            joined,
+            vec![viewer::Action::Event(Event::Joined {
+                access: Access::View,
+                cols: 80,
+                rows: 24
+            })]
+        );
+        assert!(viewer.input(b"q").is_none());
+    }
+
     /// The screen part paints first, the full part replaces it, and live
     /// output continues after `covers_seq`.
     #[test]

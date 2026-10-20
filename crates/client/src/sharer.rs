@@ -466,11 +466,15 @@ impl SharerEngine {
         });
         let mut actions = Vec::new();
         for (id, slot) in &mut self.slots {
-            if let Slot::Live(live) = slot
-                && live.access == Access::Type
-            {
-                live.access = Access::View;
-                actions.extend(seal(*id, live, &status));
+            match slot {
+                Slot::Live(live) if live.access == Access::Type => {
+                    live.access = Access::View;
+                    actions.extend(seal(*id, live, &status));
+                }
+                // A join request still waiting for an answer is approved as
+                // View only.
+                Slot::Pending { access, .. } => *access = Access::View,
+                _ => {}
             }
         }
         for link in &mut self.links {
